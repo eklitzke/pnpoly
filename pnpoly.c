@@ -1,20 +1,21 @@
 #include <Python.h>
 
-#include <stdio.h>
+#ifndef FLOAT_TYPE
+#define FLOAT_TYPE float
+#endif
 
-
-typedef float FLOAT_TYPE;
+typedef FLOAT_TYPE float_t;
 
 typedef struct {
     PyObject_HEAD
     size_t nvert;
-    FLOAT_TYPE *vertx;
-    FLOAT_TYPE *verty;
+    float_t *vertx;
+    float_t *verty;
 } pnpoly_object;
 
 
-
-FLOAT_TYPE convert_to_float(PyObject *obj, int *err) {
+// convert a Python float to a C float/double, with error checking
+float_t convert_to_float(PyObject *obj, int *err) {
     double val = PyFloat_AsDouble(obj);
     if (val == -1.0) {
         PyObject *err_obj = PyErr_Occurred();
@@ -22,18 +23,16 @@ FLOAT_TYPE convert_to_float(PyObject *obj, int *err) {
             *err = 1;
         }
     }
-    *err = 0;
-    return (FLOAT_TYPE) val;
+    return (float_t) val;
 }
 
 
 static void
 pnpoly_dealloc(pnpoly_object *self) {
-    free(self->vertx);
-    free(self->verty);
+    PyMem_Free(self->vertx);
+    PyMem_Free(self->verty);
     self->ob_type->tp_free((PyObject *) self);
 }
-
 
 static PyObject *
 pnpoly_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -45,44 +44,52 @@ pnpoly_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 static int
 pnpoly_init(pnpoly_object *self, PyObject *args) {
-    PyObject *vertices;
+    PyObject *vertices = NULL;
+    PyObject *obj = NULL;
+    PyObject *fast_vertices = NULL;
+    PyObject *fast_obj = NULL;
+
     if (!PyArg_ParseTuple(args, "O", &vertices)) {
         return -1;
     }
-    if (!PyList_Check(vertices)) {
+
+    fast_vertices = PySequence_Fast(vertices, "vertices must be a list");
+    if (fast_vertices == NULL) {
         return -1;
     }
-
-    Py_ssize_t list_size = PyList_GET_SIZE(vertices);
+    Py_ssize_t list_size = PySequence_Fast_GET_SIZE(fast_vertices);
     if (list_size < 3) {
+        PyErr_SetString(PyExc_ValueError, "vertex list too short");
         return -1;
     }
 
     self->nvert = (size_t) list_size;
-    self->vertx = malloc(self->nvert * sizeof(FLOAT_TYPE));
+    self->vertx = PyMem_Malloc(self->nvert * sizeof(float_t));
     if (self->vertx == NULL) {
         return -1;
     }
-    self->verty = malloc(self->nvert * sizeof(FLOAT_TYPE));
+    self->verty = PyMem_Malloc(self->nvert * sizeof(float_t));
     if (self->verty == NULL) {
-        free(self->vertx);
+        PyMem_Free(self->vertx);
         return -1;
     }
 
     Py_ssize_t i;
     for (i = 0; i < self->nvert; i++) {
-        PyObject *obj = PyList_GET_ITEM(vertices, i);
-        if (!PyTuple_Check(obj)) {
+        obj = PySequence_Fast_GET_ITEM(fast_vertices, i);
+        fast_obj = PySequence_Fast(obj, "item was not a sequence");
+        if (fast_obj == NULL) {
             goto init_err;
         }
-        if (PyTuple_Size(obj) != 2) {
+        if (PySequence_Fast_GET_SIZE(obj) != 2) {
+            PyErr_SetString(PyExc_ValueError, "invalid vertex");
             goto init_err;
         }
 
-        PyObject *vertx = PyTuple_GET_ITEM(obj, 0);
-        PyObject *verty = PyTuple_GET_ITEM(obj, 1);
+        PyObject *vertx = PySequence_Fast_GET_ITEM(fast_obj, 0);
+        PyObject *verty = PySequence_Fast_GET_ITEM(fast_obj, 1);
 
-        int err_occurred;
+        int err_occurred = 0;
         self->vertx[i] = convert_to_float(vertx, &err_occurred);
         if (err_occurred) {
             goto init_err;
@@ -91,12 +98,16 @@ pnpoly_init(pnpoly_object *self, PyObject *args) {
         if (err_occurred) {
             goto init_err;
         }
+        Py_XDECREF(fast_obj);
+        fast_obj = NULL;
     }
+    Py_DECREF(fast_vertices);
     return 0;
 
  init_err:
-    free(self->vertx);
-    free(self->verty);
+    Py_XDECREF(fast_obj);
+    Py_XDECREF(fast_vertices);
+
     return -1;
 }
 
@@ -104,7 +115,7 @@ static PyObject *
 pnpoly_contains(pnpoly_object *self, PyObject *args) {
     double testx, testy;
     if (!PyArg_ParseTuple(args, "dd", &testx, &testy)) {
-        return -1;
+        return NULL;
     }
     int c = 0;
     size_t i, j;
@@ -127,7 +138,6 @@ static PyMethodDef pnpoly_methods[] = {
      "test if an x/y is in the polygon"},
     {NULL}
 };
-
 
 static PyTypeObject pnpoly_type = {
     PyObject_HEAD_INIT(NULL)
