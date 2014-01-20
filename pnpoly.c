@@ -63,8 +63,9 @@ multi_polygon_alloc(multi_polygon_t *polygons, size_t npoly) {
 
 void
 multi_polygon_dealloc(multi_polygon_t *polygons) {
-    if (polygons->polygons != NULL)
-    free(polygons->polygons);
+    if (polygons->polygons != NULL) {
+        free(polygons->polygons);
+    }
     polygons->polygons = NULL;
 }
 
