@@ -7,7 +7,6 @@ class PnPolyTestCase(unittest.TestCase):
         super(PnPolyTestCase, self).setUp()
         self.triangle_points = [(-1, 0), (0, 1), (1, 0)]
 
-
     def test_in_polygon(self):
         poly = pnpoly.Polygon(self.triangle_points)
         self.assert_((0, 0) in poly)
