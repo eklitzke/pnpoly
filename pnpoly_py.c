@@ -97,22 +97,32 @@ pnpoly_init(pnpoly_object *self, PyObject *args) {
     return -1;
 }
 
-static PyObject *
-pnpoly_contains(pnpoly_object *self, PyObject *args) {
-    double testx, testy;
-    if (!PyArg_ParseTuple(args, "dd", &testx, &testy)) {
-        return NULL;
+static int
+pnpoly_contains(pnpoly_object *self, PyObject *other) {
+    if (!PySequence_Check(other)) {
+        return 0;
+    }
+    int err = 0;
+    float_t testx = convert_to_float(PySequence_GetItem(other, 0), &err);
+    if (err) {
+        return 0;
+    }
+    float_t testy = convert_to_float(PySequence_GetItem(other, 1), &err);
+    if (err) {
+        return 0;
     }
     if (polygon_contains(&self->polygon, testx, testy)) {
-        Py_RETURN_TRUE;
+        return 1;
     }
-    Py_RETURN_FALSE;
+    return 0;
 }
 
 static PyMethodDef pnpoly_methods[] = {
-    {"contains", (PyCFunction) pnpoly_contains, METH_VARARGS,
-     "test if an x/y is in the polygon"},
     {NULL}
+};
+
+static PySequenceMethods pnpoly_sequence_methods = {
+    .sq_contains = (objobjproc) pnpoly_contains
 };
 
 static PyTypeObject pnpoly_type = {
@@ -128,7 +138,7 @@ static PyTypeObject pnpoly_type = {
     0,                         /*tp_compare*/
     0,                         /*tp_repr*/
     0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
+    &pnpoly_sequence_methods,  /*tp_as_sequence*/
     0,                         /*tp_as_mapping*/
     0,                         /*tp_hash */
     0,                         /*tp_call*/
@@ -136,7 +146,8 @@ static PyTypeObject pnpoly_type = {
     0,                         /*tp_getattro*/
     0,                         /*tp_setattro*/
     0,                         /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_SEQUENCE_IN,
+    /*tp_flags*/
     "a polygon",               /* tp_doc */
     0,                         /* tp_traverse */
     0,                         /* tp_clear */

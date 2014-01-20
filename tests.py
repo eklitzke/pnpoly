@@ -10,12 +10,12 @@ class PnPolyTestCase(unittest.TestCase):
 
     def test_in_polygon(self):
         poly = pnpoly.Polygon(self.triangle_points)
-        self.assert_(poly.contains(0, 0))
-        self.assert_(poly.contains(0, 0.5))
+        self.assert_((0, 0) in poly)
+        self.assert_((0, 0.5) in poly)
 
     def test_no_in_polygon(self):
         poly = pnpoly.Polygon(self.triangle_points)
-        self.assertEquals(poly.contains(1, 1), False)
+        self.assertEquals((1, 1) in poly, False)
 
     def test_short_point_list(self):
         self.assertRaises(ValueError, pnpoly.Polygon, [])
