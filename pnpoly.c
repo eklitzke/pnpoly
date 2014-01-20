@@ -70,7 +70,7 @@ multi_polygon_dealloc(multi_polygon_t *polygons) {
 }
 
 int
-multi_pnpoly_contains(multi_polygon_t *polygons, double testx, double testy) {
+multi_polygon_contains(multi_polygon_t *polygons, double testx, double testy) {
     size_t i;
     for (i = 0; i < polygons->npoly; i++) {
         if (inline_contains(polygons->polygons[i], testx, testy)) {

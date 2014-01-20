@@ -35,6 +35,6 @@ int multi_polygon_alloc(multi_polygon_t *polygons, size_t npoly);
 // deallocate a multi-polygon
 void multi_polygon_dealloc(multi_polygon_t *polygons);
 
-int multi_pnpoly_contains(multi_polygon_t *polys, double testx, double testy);
+int multi_polygon_contains(multi_polygon_t *polys, double testx, double testy);
 
 #endif
