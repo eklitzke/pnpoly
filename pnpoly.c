@@ -55,18 +55,35 @@ polygon_contains(polygon_t *polygon, double testx, double testy) {
 // allocate a multi-polygon; return 0 on success, 1 on failure
 int
 multi_polygon_alloc(multi_polygon_t *polygons, size_t npoly) {
+    size_t i;
     polygons->npoly = npoly;
-    polygons->polygons = malloc(sizeof(polygon_t *) * npoly);
-    return polygons->polygons == NULL;
-
+    if (polygons->npoly) {
+        polygons->polygons = malloc(sizeof(polygon_t *) * npoly);
+        if (polygons->polygons == NULL) {
+            return 1;
+        }
+        for (i = 0; i < npoly; i++) {
+            polygons->polygons[i] = malloc(sizeof(polygon_t));
+            polygons->polygons[i]->nvert = 0;
+            polygons->polygons[i]->vertx = NULL;
+            polygons->polygons[i]->verty = NULL;
+        }
+        return 0;
+    }
+    polygons->polygons = NULL;
+    return 0;
 }
 
 void
 multi_polygon_dealloc(multi_polygon_t *polygons) {
+    size_t i;
     if (polygons->polygons != NULL) {
+        for (i = 0; i < polygons->npoly; i++) {
+            polygon_dealloc(polygons->polygons[i]);
+        }
         free(polygons->polygons);
+        polygons->polygons = NULL;
     }
-    polygons->polygons = NULL;
 }
 
 int
