@@ -1,1 +1,1 @@
-This implement point-in-polygon logic for Python.
+This implements point-in-polygon logic for Python using the C API.
